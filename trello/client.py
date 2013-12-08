@@ -1,12 +1,13 @@
 from rauth import OAuth1Service
 import settings
+import json
 import sys
 
 
 class TrelloClient(object):
 	
 	def __init__(self, pin=None):
-
+		# do OAuth stuff
 		self.trello_service = OAuth1Service(
 			consumer_key	 = settings.KEY,
 			consumer_secret = settings.SECRET,
@@ -35,14 +36,25 @@ class TrelloClient(object):
 		self.access_token = self.session.access_token
 		self.access_token_secret = self.session.access_token_secret
 
-		print self.session.access_token, self.session.access_token_secret # Save this to database
+		print 'Connected to Trello!'
 
-def main():
-	pin = None
-	if sys.argv and len(sys.argv) > 1:
-		pin = sys.argv[1]
-	tc = TrelloClient(pin=pin)
+	@classmethod
+	def get_api_url(cls, api_url):
+		return '{}{}'.format(settings.OAUTH_BASE_URL, api_url)
 
-if  __name__ =='__main__':
-	main()
+	def get_lists(self, board_id):
+		api_url = TrelloClient.get_api_url('boards/{}/lists'.format(board_id))
+		return self.session.get(api_url, params={}).json()
+
+	def get_cards(self, board_id):
+		api_url = TrelloClient.get_api_url('boards/{}/cards'.format(board_id))
+		return self.session.get(api_url, params={}).json()
+
+	def visit_cards(self, visitor, board_id):
+		cards = self.get_cards(board_id)
+		for c in cards:
+			visitor.visit(c)
+
+
+
 
