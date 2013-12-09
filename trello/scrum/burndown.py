@@ -27,19 +27,36 @@ class CardVisitor(object):
 		self.actual += act
 
 	def parse_counts(self, name):
-		# pattern finds (#/#) in the beginning of card titles
-		pattern = r'^\((.*)/(.*)\) '
-		matched = re.search(pattern, name, re.I)
-		if matched and len(matched.groups()) > 0:
+		"""
+		Pattern finds (#/#) in the beginning of card titles:
+		  (#)   - estimated, no work done
+		  (#/#) - estimatd, some work done
+		  (/#)  - unplanned, work done, estimate = actual work done (burndown "spike") 
+		"""
+
+		pattern = r'\((.*?)\)'
+		matched = re.findall(pattern, name, re.I)
+		# just get first match
+		if matched and len(matched) > 0:
 			try:
-				est, act = matched.group(1).strip(), matched.group(2).strip()
-				# if no estimate, probably unplanned spike, use actual value as estimate
-				if est == '':
-					est = act
+				match = matched[0]
+				#print 'match is >> ', match
+				if '/' in match:
+					# some work done
+					est, act = [val.strip() for val in match.split('/')]
+					# if an unplanned item, no estimate, estimate = actual (a spikes)
+					if est == '': 
+						est = act
+				else:
+					# no work done yet
+					est = match.strip()
+					act = 0
 				return float(est), float(act)
+
 			except:
-				print 'could not parse: {}'.format(name)
-		return (0, 0)
+				print '* could not parse: {}'.format(name)
+
+		return 0, 0
 
 	def get_totals(self):
 		return dict(estimated=self.estimated, actual=self.actual)
